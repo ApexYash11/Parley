@@ -1,0 +1,22 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e8e8e8; padding: 12px; min-height: 100vh; }
+.header { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; margin-bottom: 14px; letter-spacing: 0.05em; text-transform: uppercase; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #e24b4a; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.status { margin-left: auto; }
+.card { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; animation: slide 0.2s ease; }
+@keyframes slide { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.06em; }
+.badge-risk      { background: #3d1a1a; color: #f09595; }
+.badge-policy    { background: #2d2210; color: #ef9f27; }
+.badge-suggest   { background: #0d2416; color: #5dcaa5; }
+.badge-benchmark { background: #0d1a2e; color: #85b7eb; }
+.badge-clause    { background: #1e1a3a; color: #afa9ec; }
+.card-title { font-size: 13px; font-weight: 500; color: #f0f0f0; }
+.card-body  { font-size: 12px; color: #999; line-height: 1.5; margin-bottom: 6px; }
+.card-response { font-size: 12px; color: #5dcaa5; font-style: italic; border-left: 2px solid #1d9e75; padding-left: 8px; margin-bottom: 6px; }
+.card-evidence  { font-size: 11px; color: #555; }
+.card-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+.copy-btn { font-size: 11px; color: #555; background: none; border: 0.5px solid #2a2a2a; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.copy-btn:hover { color: #999; border-color: #444; }

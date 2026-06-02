@@ -1,0 +1,57 @@
+[
+  {
+    "id": "deal_001",
+    "vendor": "CloudTools Inc",
+    "value": 95000,
+    "type": "SaaS",
+    "payment_terms": "Net 45",
+    "liability_cap": "ACV",
+    "discount": "12%",
+    "outcome": "signed",
+    "notes": "Pushed back on Net 15, settled Net 45 after 2 rounds"
+  },
+  {
+    "id": "deal_002",
+    "vendor": "DataPipe Corp",
+    "value": 200000,
+    "type": "Services",
+    "payment_terms": "Net 30",
+    "liability_cap": "2x ACV",
+    "discount": "8%",
+    "outcome": "signed",
+    "notes": "Vendor accepted Net 30 without pushback at this deal size"
+  },
+  {
+    "id": "deal_003",
+    "vendor": "SecureBase",
+    "value": 60000,
+    "type": "Infrastructure",
+    "payment_terms": "Net 45",
+    "liability_cap": "ACV",
+    "discount": "0%",
+    "outcome": "signed",
+    "notes": "No discount given, vendor needed the logo more than the money"
+  },
+  {
+    "id": "deal_004",
+    "vendor": "DevShop Co",
+    "value": 150000,
+    "type": "Custom dev",
+    "payment_terms": "Net 30",
+    "liability_cap": "1.5x ACV",
+    "discount": "5%",
+    "outcome": "signed",
+    "notes": "IP ownership was key — we got work-for-hire on all custom modules"
+  },
+  {
+    "id": "deal_005",
+    "vendor": "Analytics Pro",
+    "value": 45000,
+    "type": "SaaS",
+    "payment_terms": "Net 45",
+    "liability_cap": "$50,000",
+    "discount": "18%",
+    "outcome": "lost",
+    "notes": "Walked away — liability cap was too low for the risk exposure"
+  }
+]

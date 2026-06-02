@@ -1,0 +1,28 @@
+{
+  "payment_terms": {
+    "standard": "Net 45",
+    "minimum_acceptable": "Net 30",
+    "never_accept": "Net 15 or less",
+    "note": "Finance requires minimum Net 30 for all new vendors"
+  },
+  "liability": {
+    "standard_cap": "Total annual contract value (ACV)",
+    "minimum_cap": "3x monthly contract value",
+    "never_accept": "Caps below $50,000 for contracts over $100k ACV"
+  },
+  "discounts": {
+    "standard_floor": "No more than 15% off list price",
+    "multi_year_allowance": "Up to 20% for 2+ year commits",
+    "approval_required_above": "20% requires VP Sales sign-off"
+  },
+  "ip": {
+    "default_position": "Customer owns all custom-developed IP",
+    "vendor_carveout": "Vendor retains background IP and platform code",
+    "never_accept": "Full IP assignment to vendor on custom work"
+  },
+  "sla": {
+    "minimum_uptime": "99.9%",
+    "support_response": "4 hours for critical, 24 hours for standard",
+    "never_accept": "Below 99.5% uptime or 48h+ response on critical"
+  }
+}
