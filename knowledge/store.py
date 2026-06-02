@@ -1,18 +1,45 @@
 import json
-import chromadb
+import os
 from pathlib import Path
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+from sentence_transformers import SentenceTransformer
+
+os.environ.pop("HF_TOKEN", None)
+os.environ.pop("HUGGINGFACE_HUB_TOKEN", None)
 
 _client = None
-_collection = None
+_model = None
+_collection_name = "parley_knowledge"
 
 
-def get_collection():
-    global _client, _collection
-    if _collection is not None:
-        return _collection
+def get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
-    _client = chromadb.Client()
-    _collection = _client.get_or_create_collection("parley_knowledge")
+
+def get_client():
+    global _client
+    if _client is not None:
+        return _client
+
+    _client = QdrantClient(":memory:")
+    col = _client.collection_exists(_collection_name)
+    if not col:
+        _client.create_collection(
+            collection_name=_collection_name,
+            vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+        )
+        _populate(_client)
+    return _client
+
+
+def _populate(client):
+    model = get_model()
+    points = []
+    idx = 0
 
     deals_path = Path(__file__).parent / "deals.json"
     policy_path = Path(__file__).parent / "policy.json"
@@ -27,20 +54,35 @@ def get_collection():
             f"Liability: {deal['liability_cap']}. Discount: {deal['discount']}. "
             f"Outcome: {deal['outcome']}. Notes: {deal['notes']}"
         )
-        _collection.upsert(documents=[text], ids=[deal["id"]])
+        vector = model.encode(text).tolist()
+        points.append(
+            PointStruct(id=idx, vector=vector, payload={"text": text, "id": deal["id"]})
+        )
+        idx += 1
 
     with open(policy_path) as f:
         policy = json.load(f)
 
     for key, val in policy.items():
-        _collection.upsert(
-            documents=[f"Policy — {key}: {json.dumps(val)}"], ids=[f"policy_{key}"]
+        text = f"Policy — {key}: {json.dumps(val)}"
+        vector = model.encode(text).tolist()
+        points.append(
+            PointStruct(
+                id=idx, vector=vector, payload={"text": text, "id": f"policy_{key}"}
+            )
         )
+        idx += 1
 
-    return _collection
+    client.upsert(collection_name=_collection_name, points=points)
 
 
 def search(query: str, n: int = 3) -> list[str]:
-    col = get_collection()
-    results = col.query(query_texts=[query], n_results=n)
-    return results["documents"][0] if results["documents"] else []
+    client = get_client()
+    model = get_model()
+    query_vector = model.encode(query).tolist()
+    results = client.query_points(
+        collection_name=_collection_name,
+        query=query_vector,
+        limit=n,
+    )
+    return [r.payload["text"] for r in results.points]
