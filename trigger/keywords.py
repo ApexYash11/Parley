@@ -1,6 +1,4 @@
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
+import re
 
 TRIGGER_PATTERNS = {
     "payment_terms": [
@@ -49,7 +47,7 @@ def detect_keywords(text: str) -> list[dict]:
     hits = []
     for category, patterns in TRIGGER_PATTERNS.items():
         for pattern in patterns:
-            if pattern in text_lower:
+            if re.search(r"\b" + re.escape(pattern) + r"\b", text_lower):
                 hits.append({"category": category, "matched": pattern, "text": text})
                 break
     return hits

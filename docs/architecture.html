@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parley Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { background: #0f0f0f; margin: 0; padding: 20px; }
+  .mermaid { max-width: 1400px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<div class="mermaid">
+flowchart TB
+    classDef audio fill:#1a237e,color:#fff,stroke:#3949ab
+    classDef stt fill:#004d40,color:#fff,stroke:#00897b
+    classDef trigger fill:#e65100,color:#fff,stroke:#fb8c00
+    classDef knowledge fill:#4a148c,color:#fff,stroke:#7b1fa2
+    classDef llm fill:#b71c1c,color:#fff,stroke:#e53935
+    classDef server fill:#263238,color:#fff,stroke:#546e7a
+    classDef overlay fill:#1b5e20,color:#fff,stroke:#43a047
+    classDef data fill:#37474f,color:#fff,stroke:#607d8b
+
+    VB["VB-Cable Virtual Audio Device<br/>(captures Zoom/Meet/Teams output)"]:::data
+
+    subgraph CAPTURE["1. AUDIO CAPTURE  (every 1.5s)"]
+        A1["audio/capture.py<br/>sounddevice.InputStream"]:::audio
+        A2["16kHz mono<br/>float32 numpy array<br/>chunk_duration=1.5s"]:::data
+        A1 -->|"queue.Queue"| A2
+    end
+
+    subgraph TRANSCRIBE["2. SPEECH-TO-TEXT"]
+        B1["stt/router.py<br/>(reads $STT_PROVIDER)"]:::stt
+        B2["stt/whisper_local.py<br/>faster-whisper base model<br/>CPU int8  |  beam_size=3"]:::stt
+        B3["stt/deepgram_stream.py<br/>Deepgram Nova-2 WebSocket<br/>~0.5s latency"]:::stt
+        B1 -->|"whisper"| B2
+        B1 -->|"deepgram"| B3
+        A2 --> B1
+    end
+
+    subgraph DETECT["3. TRIGGER DETECTION"]
+        C1["trigger/detector.py<br/>regex matching"]:::trigger
+        C2["trigger/keywords.py<br/>8 negotiation categories:"]:::trigger
+        C3["payment_terms<br/>pricing<br/>liability<br/>ip"]:::data
+        C4["termination<br/>sla<br/>exclusivity<br/>renewal"]:::data
+        C5["60s cooldown per phrase<br/>to prevent spam"]:::data
+        B2 & B3 -->|"transcribed text"| C1
+        C2 --> C1
+        C1 -->|"TriggerEvent(category, phrase, text)"| C5
+    end
+
+    subgraph STATE["SERVER STATE (server/main.py)"]
+        S1["RollingBuffer<br/>45s sliding transcript window"]:::server
+        S2["Debounce Timer<br/>0.8s coalesce window"]:::server
+        S3["WebSocket clients[]<br/>thread-safe list"]:::server
+    end
+
+    subgraph RETRIEVE["4. KNOWLEDGE RETRIEVAL"]
+        D1["knowledge/store.py<br/>sklearn TF-IDF vectorizer"]:::knowledge
+        D2["knowledge/deals.json<br/>5 past deals (terms, caps, discounts)"]:::data
+        D3["knowledge/policy.json<br/>5 policy sections (must-have, no-go)"]:::data
+        D1 -->|"fit + transform"| D2
+        D1 -->|"fit + transform"| D3
+    end
+
+    subgraph GENERATE["5. LLM SIGNAL GENERATION"]
+        E1["llm/prompts.py<br/>build_user_prompt()"]:::llm
+        E2["llm/client.py<br/>OpenRouter API via httpx"]:::llm
+        E3["Primary: google/gemini-flash-1.5"]:::data
+        E4["Fallback 1: groq/llama-3.1-70b-versatile"]:::data
+        E5["Fallback 2: groq/llama-3.1-8b-instant"]:::data
+        E2 -->|"10s timeout each"| E3
+        E3 -->|"fails"| E4
+        E4 -->|"fails"| E5
+    end
+
+    subgraph BROADCAST["6. VALIDATE & BROADCAST"]
+        F1["server/main.py<br/>validate_and_broadcast()"]:::server
+        F2["Pydantic Signal model:<br/>type, title, body,<br/>suggested_response, evidence"]:::data
+        F3["LLM repair prompt<br/>(if JSON invalid)"]:::server
+        F1 -->|"valid"| F2
+        F1 -->|"invalid"| F3
+        F3 -->|"retry once"| E2
+    end
+
+    subgraph OVERLAY["7. BROWSER OVERLAY"]
+        G1["overlay/index.html<br/>minimal shell"]:::overlay
+        G2["overlay/app.js<br/>auto-reconnecting WebSocket<br/>renderCard() | copyCard()"]:::overlay
+        G3["overlay/style.css<br/>dark theme | slide-in anim<br/>6 card cap (FIFO)"]:::overlay
+        G4["Signal Cards Displayed:"]:::data
+        G5["🔴 risk — unfavorable terms"]:::data
+        G6["🟡 policy — policy conflict"]:::data
+        G7["🟢 suggest — exact words to say"]:::data
+        G8["🔵 benchmark — market/past deal"]:::data
+        G9["🟣 clause — contract language"]:::data
+        G4 --- G5 & G6 & G7 & G8 & G9
+        G2 --- G1 & G3
+    end
+
+    VB -->|"Windows audio output"| CAPTURE
+    C5 -->|"coalesced batch"| S2
+    S1 -.->|"context window"| E1
+    S2 -->|"flush events"| D1
+    D1 -->|"top-3 cosine-similar docs"| E1
+    E1 -->|"formatted prompt"| E2
+    E2 -->|"raw JSON"| F1
+    F1 -->|"validated Signal"| S3
+    S3 -->|"WebSocket broadcast"| G2
+
+    L1["⏱ ~1.5s"]:::data
+    L2["⏱ ~0.3-2s"]:::data
+    L3["⏱ ~0.01s"]:::data
+    L4["⏱ ~0.05s"]:::data
+    L5["⏱ ~1-3s"]:::data
+    L6["⏱ ~0.01s"]:::data
+    A1 -.->|"latency"| L1
+    B1 -.-> L2
+    C1 -.-> L3
+    D1 -.-> L4
+    E2 -.-> L5
+    F1 -.-> L6
+</div>
+</body>
+</html>

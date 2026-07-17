@@ -1,5 +1,9 @@
+import time
 from dataclasses import dataclass
 from trigger.keywords import detect_keywords
+
+_last_fired: dict[str, float] = {}
+COOLDOWN_SECONDS = 60
 
 
 @dataclass
@@ -16,7 +20,14 @@ def detect(transcript: str) -> list[TriggerEvent]:
 
     hits = detect_keywords(transcript)
     events = []
+    now = time.time()
+
     for h in hits:
+        key = h["matched"]
+        last = _last_fired.get(key, 0)
+        if now - last < COOLDOWN_SECONDS:
+            continue
+        _last_fired[key] = now
         events.append(
             TriggerEvent(
                 category=h["category"],

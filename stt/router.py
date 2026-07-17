@@ -1,4 +1,5 @@
 import os
+import asyncio
 import numpy as np
 from dotenv import load_dotenv
 
@@ -7,13 +8,13 @@ load_dotenv()
 STT_PROVIDER = os.getenv("STT_PROVIDER", "whisper")
 
 
-def transcribe(audio: np.ndarray, sample_rate: int = 16000) -> str:
+async def transcribe(audio: np.ndarray, sample_rate: int = 16000) -> str:
     if STT_PROVIDER == "deepgram":
-        import asyncio
-        from stt.deepgram_stream import transcribe_chunk
+        from stt.deepgram_stream import send_audio
 
-        return asyncio.run(transcribe_chunk(audio, sample_rate))
+        return await send_audio(audio, sample_rate)
     else:
-        from stt.whisper_local import transcribe
+        from stt.whisper_local import transcribe as whisper_transcribe
 
-        return transcribe(audio, sample_rate)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, whisper_transcribe, audio, sample_rate)
